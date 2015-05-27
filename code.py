@@ -7,6 +7,7 @@ import tornado.web
 
 import json
 from bson import json_util
+from bson.objectid import ObjectId 
 
 import pymongo
 
@@ -23,7 +24,6 @@ class Application(tornado.web.Application):
         self.db = client['codedb']
 
         tornado.web.Application.__init__(self, self.handlers, **settings)
-
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -49,8 +49,25 @@ class CodesHandler(APIHandler):
         self.write(json.dumps(res, default=json_util.default))
 
 
+class CodeHandler(APIHandler):
+    ## 查询
+    def get(self, oid):
+        code = self.db.code.find_one({'_id': ObjectId(str(oid))})
+        self.write(json.dumps(code, default=json_util.default))
+
+    ## 修改记录
+    def put(self, oid):
+        code = self.db.code.find_one({"_id": ObjectId(str(oid))})
+        new_code = json.loads(self.request.body)
+        self.db.code.update(code, new_code)
+
+    ## 删除一条记录
+    def delete(self, oid):
+        result = self.db.code.delete_one({'_id': ObjectId(str(oid))})
+
 handlers = [
-    (r'/api/v1/codes', CodesHandler)
+    (r'/api/v1/codes', CodesHandler),
+    (r'/api/v1/codes/(.*)', CodeHandler)
 ]
 
 if __name__ == '__main__':
